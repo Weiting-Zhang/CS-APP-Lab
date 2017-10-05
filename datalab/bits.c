@@ -74,7 +74,7 @@ EXAMPLES OF ACCEPTABLE CODING STYLE:
    * pow2plus1 - returns 2^x + 1, where 0 <= x <= 31
    */
   int pow2plus1(int x) {
-     /* exploit ability of shifts to compute powers of 2 */
+  i   /* exploit ability of shifts to compute powers of 2 */
      return (1 << x) + 1;
   }
 
@@ -150,7 +150,8 @@ int bitAnd(int x, int y) {
  *   Rating: 2
  */
 int getByte(int x, int n) {
-  return x >> (8 * n) & 0xFF;
+  int mask = ~((1 << 31) >> 23);
+  return (x >> (n << 3)) & mask;
 }
 /* 
  * logicalShift - shift x to the right by n, using a logical shift
@@ -193,7 +194,9 @@ int bitCount(int x) {
  *   Rating: 4 
  */
 int bang(int x) {
-  return 2;
+  int invx = ~x; // if x == 0, then -1
+  int negx = invx + 1;
+  return ((~negx & invx) >> 31) & 1;
 }
 /* 
  * tmin - return minimum two's complement integer 
@@ -202,7 +205,7 @@ int bang(int x) {
  *   Rating: 1
  */
 int tmin(void) {
-  return 2;
+  return 1 << 31;
 }
 /* 
  * fitsBits - return 1 if x can be represented as an 
@@ -214,7 +217,8 @@ int tmin(void) {
  *   Rating: 2
  */
 int fitsBits(int x, int n) {
-  return 2;
+  int shiftNumber=~n+33;  
+  return !(x^((x<<shiftNumber)>>shiftNumber));    
 }
 /* 
  * divpwr2 - Compute x/(2^n), for 0 <= n <= 30
@@ -225,17 +229,22 @@ int fitsBits(int x, int n) {
  *   Rating: 2
  */
 int divpwr2(int x, int n) {
-    return 2;
+  //all zeros or all ones  
+  int signx=x>>31;  
+  //int mask=(1<<n)+(-1);  
+  int mask=(1<<n)+(~0);  
+  int bias=signx&mask;  
+  return (x+bias)>>n;  
 }
 /* 
  * negate - return -x 
- *   Example: negate(1) = -1.
+ *   Example: negatie(1) = -1.
  *   Legal ops: ! ~ & ^ | + << >>
  *   Max ops: 5
  *   Rating: 2
  */
 int negate(int x) {
-  return 2;
+  return ~x+1;  
 }
 /* 
  * isPositive - return 1 if x > 0, return 0 otherwise 
@@ -245,7 +254,7 @@ int negate(int x) {
  *   Rating: 3
  */
 int isPositive(int x) {
-  return 2;
+  return !((x>>31)|(!x)); 
 }
 /* 
  * isLessOrEqual - if x <= y  then return 1, else return 0 
@@ -255,7 +264,11 @@ int isPositive(int x) {
  *   Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-  return 2;
+  int signx=x>>31;  
+  int signy=y>>31;  
+  int signSame=((x+(~y))>>31)&(!(signx^signy));  
+  int signDiffer=signx&(!signy);  
+  return signDiffer|signSame;  
 }
 /*
  * ilog2 - return floor(log base 2 of x), where x > 0
@@ -265,7 +278,17 @@ int isLessOrEqual(int x, int y) {
  *   Rating: 4
  */
 int ilog2(int x) {
-  return 2;
+  int bitsNumber=0;  
+  //binary search process  
+  bitsNumber=(!!(x>>16))<<4;  
+  bitsNumber=bitsNumber+((!!(x>>(bitsNumber+8)))<<3);  
+  bitsNumber=bitsNumber+((!!(x>>(bitsNumber+4)))<<2);  
+  bitsNumber=bitsNumber+((!!(x>>(bitsNumber+2)))<<1);  
+  bitsNumber=bitsNumber+(!!(x>>(bitsNumber+1)));  
+  //for non zero bitsNumber, it should add 0  
+  //for zero bitsNumber, it should subtract 1  
+  bitsNumber=bitsNumber+(!!bitsNumber)+(~0)+(!(1^x));  
+  return bitsNumber; 
 }
 /* 
  * float_neg - Return bit-level equivalent of expression -f for
@@ -275,11 +298,17 @@ int ilog2(int x) {
  *   single-precision floating point values.
  *   When argument is NaN, return argument.
  *   Legal ops: Any integer/unsigned operations incl. ||, &&. also if, while
- *   Max ops: 10
+ *   Max ops: 10i
  *   Rating: 2
  */
 unsigned float_neg(unsigned uf) {
- return 2;
+  unsigned result;  
+  unsigned tmp;  
+  tmp=uf&(0x7fffffff);  
+  result=uf^0x80000000;  
+  if(tmp>0x7f800000)  
+      result=uf;  
+  return result;  
 }
 /* 
  * float_i2f - Return bit-level equivalent of expression (float) x
@@ -291,7 +320,34 @@ unsigned float_neg(unsigned uf) {
  *   Rating: 4
  */
 unsigned float_i2f(int x) {
-  return 2;
+  unsigned shiftLeft=0;  
+  unsigned afterShift, tmp, flag;  
+  unsigned absX=x;  
+  unsigned sign=0;  
+  //special case  
+  if (x==0) return 0;  
+    //if x < 0, sign = 1000...,abs_x = -x  
+  if (x<0)  
+  {  
+      sign=0x80000000;  
+      absX=-x;  
+  }  
+  afterShift=absX;  
+  //count shift_left and after_shift  
+  while (1)  
+  {  
+      tmp=afterShift;  
+      afterShift<<=1;  
+      shiftLeft++;  
+      if (tmp & 0x80000000) break;  
+  }  
+  if ((afterShift & 0x01ff)>0x0100)  
+      flag=1;  
+  else if ((afterShift & 0x03ff)==0x0300)  
+      flag=1;  
+  else  
+      flag=0;  
+  return sign + (afterShift>>9) + ((159-shiftLeft)<<23) + flag;  
 }
 /* 
  * float_twice - Return bit-level equivalent of expression 2*f for
@@ -305,5 +361,15 @@ unsigned float_i2f(int x) {
  *   Rating: 4
  */
 unsigned float_twice(unsigned uf) {
-  return 2;
+  unsigned f=uf;  
+  /* Computer 2*f. If f is a NaN, then return f. */  
+  if ((f & 0x7F800000) == 0) {  
+      //shift one bit to left  
+      f = ((f & 0x007FFFFF)<<1) | (0x80000000 & f);  
+  } else if ((f & 0x7F800000) != 0x7F800000){  
+      /* Float has a special exponent. */  
+      /* Increment exponent, effectively multiplying by 2. */  
+      f =f+0x00800000;  
+  }  
+  return f;  
 }
