@@ -1,4 +1,4 @@
-此 repo 是 CMU(卡内基梅隆大学) 15-213/18-213/15-513: **Intro to Computer systems** 课程对应的实验部分
+此 repo 是 CMU(卡内基梅隆大学) 15-213/18-213/15-513: **[Intro to Computer systems](http://www.cs.cmu.edu/~213/index.html)** 课程对应的实验部分
 
 实验主页：[Lab Assignments](http://csapp.cs.cmu.edu/3e/labs.html)
 
@@ -45,8 +45,13 @@ Err http://security.ubuntu.com oneiric-security Release.gpg
   Temporary failure resolving ‘security.ubuntu.com’
 ...
 ```
-可运行：`echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null`
-再重新运行 `sudo apt-get update`。
+可运行：
+
+`echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null`
+
+再重新运行 
+
+`sudo apt-get update`。
 
 若仍遇到问题：
 ```
